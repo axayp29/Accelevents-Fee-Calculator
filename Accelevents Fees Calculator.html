@@ -1,0 +1,451 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Accelevents Fees Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: ledger tool. Inputs on the left, the order's ledger on the right; stacks to one column on phones. */
+:root {
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --ink: #17201d;
+  --muted: #5d6b66;
+  --line: #d9e0dc;
+  --accent: #0d6b57;
+  --accent-soft: #e2f1ec;
+  --warn: #9a5b00;
+  --warn-soft: #fbefdc;
+  --bad: #a3332b;
+  --font-ui: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111715; --surface: #18201d; --ink: #e6ece9; --muted: #98a7a1; --line: #2c3833;
+    --accent: #4fc2a3; --accent-soft: #173029; --warn: #e7a84a; --warn-soft: #34281a; --bad: #ec7d74;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111715; --surface: #18201d; --ink: #e6ece9; --muted: #98a7a1; --line: #2c3833;
+  --accent: #4fc2a3; --accent-soft: #173029; --warn: #e7a84a; --warn-soft: #34281a; --bad: #ec7d74;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 { font-size: 1.7rem; letter-spacing: -0.01em; margin: 0 0 4px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 70ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 18px; min-width: 0; }
+.panel h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 600; }
+.field { display: grid; gap: 6px; }
+label, .label { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+input[type=number], input[type=text], select {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px;
+  padding: 8px 10px; width: 100%; min-width: 0;
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.methods { display: grid; gap: 8px; }
+.method { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.method input { margin-top: 4px; accent-color: var(--accent); }
+.method strong { font-weight: 600; }
+.method small { grid-column: 2; color: var(--muted); }
+.method:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tickets { display: grid; gap: 10px; }
+.ticket { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.ticket-top { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.ticket-mid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { font: inherit; font-size: 0.85rem; padding: 7px 6px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); font-weight: 600; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.88rem; color: var(--ink); }
+.check input { accent-color: var(--accent); }
+.btn { font: inherit; font-weight: 600; padding: 9px 12px; border-radius: 7px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn-quiet { border-color: var(--line); color: var(--muted); padding: 7px 10px; font-weight: 500; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 2px; min-width: 0; }
+.tile .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.tile .val { font-family: var(--font-num); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile .sub { font-size: 0.8rem; color: var(--muted); }
+.tile.key { border-color: var(--accent); }
+.capbar { display: grid; gap: 6px; }
+.bar { height: 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; display: flex; }
+.bar span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 0.8rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.88rem; }
+th, td { text-align: right; padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--bg); }
+td.num, th.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+tfoot td { font-weight: 600; border-bottom: 0; }
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.pill.capped { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.pill.zero { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.note { font-size: 0.85rem; color: var(--muted); margin: 0; max-width: 80ch; }
+.steps { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.85rem; display: grid; gap: 4px; max-width: 80ch; }
+.steps code { font-family: var(--font-num); font-size: 0.8rem; color: var(--ink); }
+.empty { color: var(--muted); font-size: 0.9rem; padding: 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Accelevents Fees Calculator</h1>
+    <p>Pick a payment method, add your ticket types, and see the processing fee, sales tax and VAT for every ticket. US bank account and Braintree ACH fees are capped at $5 per order. The numbers follow the same calculation as checkout. An example order is loaded; change anything.</p>
+  </header>
+
+  <div class="grid">
+    <!-- Inputs -->
+    <section class="panel" aria-label="Order settings">
+      <h2>Payment method</h2>
+      <div class="methods" role="radiogroup" aria-label="Payment method">
+        <label class="method"><input type="radio" name="method" id="m-stripe-ach" value="stripe_ach" checked>
+          <strong>US bank account (Stripe ACH)</strong><small>0.8% of the charge, max $5 per order</small></label>
+        <label class="method"><input type="radio" name="method" id="m-braintree-ach" value="braintree_ach">
+          <strong>Braintree ACH (Spreedly)</strong><small>0.75% of the charge, max $5 per order</small></label>
+        <label class="method"><input type="radio" name="method" id="m-sepa" value="sepa">
+          <strong>SEPA Debit (Stripe)</strong><small>€0.35 flat per order, no cap (EUR events)</small></label>
+        <label class="method"><input type="radio" name="method" id="m-card" value="card">
+          <strong>Credit card (Stripe)</strong><small>2.9% of the charge + $0.30 flat per order by default, no cap</small></label>
+      </div>
+
+      <div class="row2" id="card-settings" hidden>
+        <div class="field"><label for="card-pct">Card %</label><input id="card-pct" type="number" min="0" step="0.01" value="2.9" class="num"></div>
+        <div class="field"><label for="card-flat">Card flat per order</label><input id="card-flat" type="number" min="0" step="0.01" value="0.30" class="num"></div>
+      </div>
+
+
+      <h2>Taxes</h2>
+      <div class="row2">
+        <div class="field"><label for="tax-rate">Sales tax rate (%)</label><input id="tax-rate" type="number" min="0" step="0.01" value="0" class="num"></div>
+        <div class="field"><label for="tax-mode">Sales tax mode</label>
+          <select id="tax-mode">
+            <option value="ontop">Added on top (buyer pays)</option>
+            <option value="included">Included in price</option>
+          </select></div>
+      </div>
+      <p class="note">VAT is set per ticket type below, as a % of the ticket price added on top.</p>
+
+      <h2>Tickets (priced top to bottom)</h2>
+      <div class="tickets" id="tickets"></div>
+      <button class="btn" id="add-ticket" type="button">Add ticket type</button>
+    </section>
+
+    <!-- Results -->
+    <section style="display:grid;gap:18px;min-width:0" aria-label="Results">
+      <div class="tiles" id="tiles"></div>
+
+      <div class="panel" id="cap-panel">
+        <h2 id="capbar-title">How the $5 cap was used</h2>
+        <div class="capbar" id="capbar"></div>
+      </div>
+
+      <div class="tablewrap" id="table"></div>
+
+      <div class="panel">
+        <h2>How each ticket is calculated</h2>
+        <ol class="steps">
+          <li>Flat fee per ticket = <code>flat ÷ paid ticket types ÷ quantity</code> (SEPA €0.35; ACH has no flat fee).</li>
+          <li>Fee on buyer: amount grossed up as <code>amount ÷ (1 − fee %)</code>. If that fee is more than the cap still left, the buyer pays <code>amount + cap left</code> instead.</li>
+          <li>Absorb fee: the buyer pays only the price; the organizer's fee is <code>fee % × price</code>.</li>
+          <li>Sales tax (on top) is worked out on the price plus the capped fee, so tax is never charged on fee the buyer doesn't pay.</li>
+          <li>VAT is set per ticket type: <code>that ticket's VAT % × ticket price</code> (never on the fee), added on top. When the fee is passed to the buyer, the processing fee also covers the VAT amount.</li>
+          <li>The ticket's fee is limited to the cap left, then subtracted from it. The next ticket sees what remains; once the $5 is used, later tickets pay $0.</li>
+          <li>Credit card is 2.9% + $0.30 flat per order by default (both editable), with the same gross-up and no cap. Card, SEPA and free tickets never touch the cap.</li>
+        </ol>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Rounding, as in GeneralUtils ----
+  function clean(v) { return Number(Number(v).toPrecision(15)); }
+  function roundHalfEven(v) {            // getRoundValue: BigDecimal setScale(2, HALF_EVEN)
+    var x = clean(clean(v) * 100);
+    var f = Math.floor(x), diff = x - f;
+    if (Math.abs(diff - 0.5) < 1e-9) return (f % 2 === 0 ? f : f + 1) / 100;
+    return Math.round(x) / 100;
+  }
+  function roundUp(v) {                  // getRoundUP: BigDecimal setScale(2, ROUND_UP)
+    var x = clean(clean(v) * 100);
+    return (x >= 0 ? Math.ceil(x - 1e-9) : Math.floor(x + 1e-9)) / 100;
+  }
+
+  // ---- Fee settings per payment method (Constants.BankTransferFees) ----
+  var METHODS = {
+    stripe_ach:    { label: "US bank account (Stripe ACH)", gateway: "STRIPE",       type: "us_bank_account", pct: 0.8,  flat: 0,    maxFee: 5, cur: "$" },
+    braintree_ach: { label: "Braintree ACH",                gateway: "SP_BRAINTREE", type: "ach",             pct: 0.75, flat: 0,    maxFee: 5, cur: "$" },
+    sepa:          { label: "SEPA Debit",                   gateway: "STRIPE",       type: "sepa_debit",      pct: 0,    flat: 0.35, maxFee: 0, cur: "€" },
+    card:          { label: "Credit card",                  gateway: "STRIPE",       type: "card",            pct: 2.9,  flat: 0.30, maxFee: 0, cur: "$" }
+  };
+  var BANK_TYPES = ["us_bank_account", "sepa_debit", "ach"];
+
+  // ---- One FeePerTicket.invoke() for a single ticket ----
+  // dto = { gateway, type, pct, flat, maxFee, remaining }  (shared and mutated across the order, like StripeDTO)
+  function priceTicket(price, passFee, taxable, vatRate, dto, tax, paidTypes, qty) {
+    var out = { price: price, fee: 0, salesTax: 0, vat: 0, paid: price, normalFee: 0, capLeftBefore: dto.remaining, capped: false };
+    if (price <= 0) { out.paid = 0; return out; }
+
+    var isBank = BANK_TYPES.indexOf(dto.type) >= 0;
+    var hasMax = isBank && dto.maxFee > 0;
+    var limit = hasMax ? dto.remaining : 0;
+    var p = dto.pct / 100;
+    var flatPer = paidTypes === 0 ? 0 : dto.flat / paidTypes / qty;
+
+    function exceeded(amount) { return hasMax && (amount / (1 - p)) - amount > limit; }
+    function payable(amount) { return (isBank && exceeded(amount)) ? amount + limit : amount / (1 - p); }
+
+    // ticketPriceWithAEFeeAndStripeFee (no service fee in this tool)
+    var g0 = passFee ? payable(price + flatPer) : price;
+
+    // calculateSalesTax
+    var taxToPass = 0, taxToShow = 0, t = tax.rate / 100;
+    if (taxable && t > 0) {
+      if (tax.mode === "ontop") { taxToPass = taxToShow = g0 * t; }
+      else { taxToShow = g0 - g0 / (1 + t); }
+    }
+
+    // calculateVatTax: VAT on the ticket price only, passed to the buyer (passFeeVatToBuyer)
+    var vat = vatRate > 0 ? price * vatRate / 100 : 0;
+
+    var amountBeforeFee = price + flatPer + taxToPass + vat;
+    var g1 = passFee ? payable(amountBeforeFee) : price;
+
+    // calculateTotalAdjustFee
+    var adjust = 0;
+    if (!(isBank && exceeded(amountBeforeFee)) && passFee) {
+      adjust = roundUp(g1) * (1 - p) - amountBeforeFee;
+    }
+
+    // calculateTotalPayable
+    var totalPayable = passFee ? payable(amountBeforeFee + adjust) : price + taxToPass + vat;
+
+    // setProcessingFee
+    var fee;
+    if (dto.gateway === "SP_BRAINTREE") fee = flatPer + p * totalPayable + adjust;
+    else fee = flatPer + p * totalPayable;
+    var uncappedFee = fee > 0 ? fee : 0;
+    if (hasMax) fee = Math.min(fee, limit);
+    fee = roundHalfEven(fee > 0 ? fee : 0);
+
+    // Fee without the cap: the same calculation run with no cap, so sales tax and VAT are counted the same way.
+    out.normalFee = hasMax
+      ? priceTicket(price, passFee, taxable, vatRate, Object.assign({}, dto, { maxFee: 0, remaining: 0 }), tax, paidTypes, qty).fee
+      : roundHalfEven(uncappedFee);
+    out.capped = hasMax && fee + 1e-9 < out.normalFee;
+    out.fee = fee;
+    out.salesTax = roundHalfEven(taxToShow);
+    out.vat = roundHalfEven(vat);
+    out.paid = roundHalfEven(totalPayable);
+
+    // useMaxFeeForThisTicket
+    if (hasMax) dto.remaining = Math.max(0, roundHalfEven(dto.remaining - fee));
+    return out;
+  }
+
+  function priceOrder(lines, dtoBase, tax) {
+    var dto = Object.assign({}, dtoBase, { remaining: dtoBase.maxFee });
+    var paidTypes = lines.filter(function (l) { return l.price > 0 && l.qty > 0; }).length;
+    var rows = [];
+    lines.forEach(function (l, li) {
+      for (var i = 0; i < l.qty; i++) {
+        var r = priceTicket(l.price, l.pass, l.taxable, l.vatRate || 0, dto, tax, paidTypes, l.qty);
+        r.lineIndex = li; r.name = l.name || ("Ticket " + (li + 1)); r.n = i + 1; r.pass = l.pass;
+        rows.push(r);
+      }
+    });
+    return rows;
+  }
+
+  function gatewayFee(method, charged) {
+    if (charged <= 0) return 0;
+    if (method.maxFee > 0) return Math.min(roundHalfEven(charged * method.pct / 100), method.maxFee);
+    return roundHalfEven(charged * method.pct / 100 + method.flat);
+  }
+
+  // ---- State ----
+  var state = {
+    lines: [
+      { name: "Exhibitor booth", price: 500, qty: 1, pass: true, taxable: true, vatRate: 0 },
+      { name: "Attendee pass", price: 100, qty: 2, pass: false, taxable: true, vatRate: 0 }
+    ]
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function money(v, cur) { var s = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (v < 0 ? "−" : "") + cur + s; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  function renderTickets() {
+    var host = $("tickets");
+    host.innerHTML = state.lines.map(function (l, i) {
+      return '<div class="ticket" data-i="' + i + '">' +
+        '<div class="ticket-top"><div class="field"><label for="t-name-' + i + '">Ticket name</label>' +
+        '<input id="t-name-' + i + '" type="text" data-k="name" value="' + esc(l.name) + '"></div>' +
+        '<button class="btn btn-quiet" type="button" data-remove="' + i + '" aria-label="Remove ' + esc(l.name || "ticket") + '">Remove</button></div>' +
+        '<div class="ticket-mid"><div class="field"><label for="t-price-' + i + '">Price</label>' +
+        '<input id="t-price-' + i + '" class="num" type="number" min="0" step="0.01" data-k="price" value="' + l.price + '"></div>' +
+        '<div class="field"><label for="t-qty-' + i + '">Quantity</label>' +
+        '<input id="t-qty-' + i + '" class="num" type="number" min="0" step="1" data-k="qty" value="' + l.qty + '"></div></div>' +
+        '<div class="field"><span class="label" id="t-fee-label-' + i + '">Processing fee</span>' +
+        '<div class="seg" role="group" aria-labelledby="t-fee-label-' + i + '">' +
+        '<button type="button" id="t-pass-' + i + '" data-pass="1" aria-pressed="' + (l.pass ? "true" : "false") + '">Pass fee to buyer</button>' +
+        '<button type="button" id="t-absorb-' + i + '" data-pass="0" aria-pressed="' + (l.pass ? "false" : "true") + '">Absorb fee</button></div></div>' +
+        '<div class="row2" style="align-items:end"><div class="field"><label for="t-vat-' + i + '">VAT %</label>' +
+        '<input id="t-vat-' + i + '" class="num" type="number" min="0" step="0.01" data-k="vatRate" value="' + (l.vatRate || 0) + '"></div>' +
+        '<label class="check" for="t-tax-' + i + '" style="padding-bottom:9px"><input id="t-tax-' + i + '" type="checkbox" data-k="taxable"' + (l.taxable ? " checked" : "") + '> Sales tax applies</label></div>' +
+        '</div>';
+    }).join("");
+  }
+
+  function currentMethod() {
+    var el = document.querySelector('input[name="method"]:checked');
+    var key = el ? el.value : "stripe_ach";
+    $("card-settings").hidden = key !== "card";
+    if (key === "card") {
+      return Object.assign({}, METHODS.card, {
+        pct: Math.max(0, parseFloat($("card-pct").value) || 0),
+        flat: Math.max(0, parseFloat($("card-flat").value) || 0)
+      });
+    }
+    return METHODS[key];
+  }
+  function taxSettings() {
+    return {
+      rate: Math.max(0, parseFloat($("tax-rate").value) || 0),
+      mode: $("tax-mode").value
+    };
+  }
+
+  function renderResults() {
+    var m = currentMethod(), cur = m.cur, tax = taxSettings();
+    var lines = state.lines.map(function (l) {
+      return { name: l.name, price: Math.max(0, parseFloat(l.price) || 0), qty: Math.max(0, Math.floor(parseFloat(l.qty) || 0)), pass: l.pass, taxable: l.taxable, vatRate: Math.max(0, parseFloat(l.vatRate) || 0) };
+    });
+    var rows = priceOrder(lines, { gateway: m.gateway, type: m.type, pct: m.pct, flat: m.flat, maxFee: m.maxFee }, tax);
+
+    var totPrice = 0, totFee = 0, totTax = 0, totVat = 0, totPaid = 0, absorbed = 0, buyerFee = 0;
+    rows.forEach(function (r) {
+      totPrice += r.price; totFee += r.fee; totTax += r.salesTax; totVat += r.vat; totPaid += r.paid;
+      if (r.pass) buyerFee += r.fee; else absorbed += r.fee;
+    });
+    totPrice = roundHalfEven(totPrice); totFee = roundHalfEven(totFee); totTax = roundHalfEven(totTax); totVat = roundHalfEven(totVat); totPaid = roundHalfEven(totPaid);
+    var taxNote = [];
+    if (totTax > 0) taxNote.push(money(totTax, cur) + " sales tax");
+    if (totVat > 0) taxNote.push(money(totVat, cur) + " VAT");
+    var gw = gatewayFee(m, totPaid);
+    var receives = roundHalfEven(totPaid - gw);
+
+    $("tiles").innerHTML =
+      tile("Buyer pays", money(totPaid, cur), "Ticket price " + money(totPrice, cur), true) +
+      tile("Processing fee", money(totFee, cur), "Buyer " + money(roundHalfEven(buyerFee), cur) + " · Organizer " + money(roundHalfEven(absorbed), cur)) +
+      tile("Gateway takes", money(gw, cur), m.maxFee > 0 ? m.pct + "% of charge, max " + money(m.maxFee, cur) : (m.pct > 0 ? m.pct + "% + " : "") + money(m.flat, cur) + " flat per order") +
+      tile("Organizer receives", money(receives, cur), taxNote.length ? "Includes " + taxNote.join(" and ") : "After gateway fee");
+
+    // Cap bar
+    if (m.maxFee > 0) {
+      var used = Math.min(m.maxFee, rows.reduce(function (s, r) { return s + r.fee; }, 0));
+      var b = '<div class="bar" role="img" aria-label="Cap used ' + money(used, cur) + ' of ' + money(m.maxFee, cur) + '">';
+      var colors = ["var(--accent)", "var(--warn)", "var(--muted)"];
+      var legend = [];
+      lines.forEach(function (l, li) {
+        var lf = rows.filter(function (r) { return r.lineIndex === li; }).reduce(function (s, r) { return s + r.fee; }, 0);
+        if (lf > 0) {
+          b += '<span style="width:' + (lf / m.maxFee * 100) + '%;background:' + colors[li % 3] + '"></span>';
+          legend.push('<span><i style="background:' + colors[li % 3] + '"></i>' + esc(l.name || ("Ticket " + (li + 1))) + ' ' + money(roundHalfEven(lf), cur) + '</span>');
+        }
+      });
+      b += '</div>';
+      var left = roundHalfEven(m.maxFee - used);
+      legend.push('<span><i style="background:var(--bg);border:1px solid var(--line)"></i>Cap left ' + money(left, cur) + '</span>');
+      var real = rows.reduce(function (s, r) { return s + r.normalFee; }, 0);
+      $("capbar").innerHTML = b + '<div class="legend">' + legend.join("") + '</div>' +
+        '<p class="note">Without the cap this order\'s fee would be about <span class="num">' + money(roundHalfEven(real), cur) + '</span>. ' +
+        (real > m.maxFee ? 'The cap applies: the order pays <span class="num">' + money(totFee, cur) + '</span>, matching what the gateway takes.' : 'That is under the cap, so the normal rate applies to every ticket.') + '</p>';
+    } else if (m.type === "card") {
+      $("capbar").innerHTML = '<p class="note">Credit card fees have no cap. Each ticket pays ' + m.pct + '% plus its share of the ' +
+        money(m.flat, cur) + ' flat fee (' + money(m.flat, cur) + ' ÷ paid ticket types ÷ quantity).</p>';
+    } else {
+      $("capbar").innerHTML = '<p class="note">SEPA Debit has no cap. The ' + money(m.flat, cur) + ' flat fee is split across the paid tickets (' +
+        money(m.flat, cur) + ' ÷ paid ticket types ÷ quantity), so rounding can add a cent.</p>';
+    }
+    $("cap-panel").hidden = !(m.maxFee > 0);
+
+    // Per-ticket table
+    if (!rows.length) {
+      $("table").innerHTML = '<p class="empty">Add a ticket type with a quantity to see the calculation.</p>';
+    } else {
+      var showCap = m.maxFee > 0;
+      var html = '<table><thead><tr><th>Ticket</th><th>Fee</th><th class="num">Price</th>' + (showCap ? '<th class="num">Cap left before</th>' : '') + '<th class="num">Fee at normal rate</th><th class="num">Fee applied</th><th class="num">Sales tax</th><th class="num">VAT</th><th class="num">Buyer pays</th><th class="num">Organizer gets</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        var pill = r.price <= 0 ? '<span class="pill">Free</span>' : r.fee === 0 && r.capped ? '<span class="pill zero">Cap used up</span>' : r.capped ? '<span class="pill capped">Capped</span>' : '';
+        var orgGets = roundHalfEven(r.paid - r.fee);
+        html += '<tr><td>' + esc(r.name) + ' #' + r.n + ' ' + pill + '</td><td>' + (r.pass ? "Buyer" : "Organizer") + '</td>' +
+          '<td class="num">' + money(r.price, cur) + '</td>' +
+          (showCap ? '<td class="num">' + money(r.capLeftBefore, cur) + '</td>' : '') +
+          '<td class="num">' + money(roundHalfEven(r.normalFee), cur) + '</td>' +
+          '<td class="num">' + money(r.fee, cur) + '</td>' +
+          '<td class="num">' + money(r.salesTax, cur) + '</td>' +
+          '<td class="num">' + money(r.vat, cur) + '</td>' +
+          '<td class="num">' + money(r.paid, cur) + '</td>' +
+          '<td class="num">' + money(orgGets, cur) + '</td></tr>';
+      });
+      html += '</tbody><tfoot><tr><td>Total</td><td></td><td class="num">' + money(totPrice, cur) + '</td>' + (showCap ? '<td></td>' : '') + '<td></td>' +
+        '<td class="num">' + money(totFee, cur) + '</td><td class="num">' + money(totTax, cur) + '</td><td class="num">' + money(totVat, cur) + '</td><td class="num">' + money(totPaid, cur) + '</td>' +
+        '<td class="num">' + money(roundHalfEven(totPaid - totFee), cur) + '</td></tr></tfoot></table>';
+      $("table").innerHTML = html;
+    }
+  }
+
+  function tile(label, val, sub, key) {
+    return '<div class="tile' + (key ? " key" : "") + '"><span class="label">' + label + '</span><span class="val">' + val + '</span><span class="sub">' + sub + '</span></div>';
+  }
+
+  function render() { renderTickets(); renderResults(); }
+
+  // ---- Events ----
+  $("tickets").addEventListener("input", function (e) {
+    var card = e.target.closest(".ticket"); if (!card) return;
+    var i = +card.dataset.i, k = e.target.dataset.k; if (!k) return;
+    if (k === "taxable") state.lines[i][k] = e.target.checked;
+    else state.lines[i][k] = e.target.value;
+    renderResults();
+  });
+  $("tickets").addEventListener("click", function (e) {
+    var card = e.target.closest(".ticket"); if (!card) return;
+    var i = +card.dataset.i;
+    if (e.target.dataset.remove !== undefined) { state.lines.splice(i, 1); render(); return; }
+    if (e.target.dataset.pass !== undefined) {
+      state.lines[i].pass = e.target.dataset.pass === "1";
+      card.querySelectorAll("[data-pass]").forEach(function (btn) { btn.setAttribute("aria-pressed", String((btn.dataset.pass === "1") === state.lines[i].pass)); });
+      renderResults();
+    }
+  });
+  $("add-ticket").addEventListener("click", function () {
+    state.lines.push({ name: "Ticket " + (state.lines.length + 1), price: 100, qty: 1, pass: true, taxable: true, vatRate: 0 });
+    render();
+    var last = document.getElementById("t-name-" + (state.lines.length - 1)); if (last) last.focus();
+  });
+  document.querySelectorAll('input[name="method"]').forEach(function (r) { r.addEventListener("change", renderResults); });
+  ["tax-rate", "tax-mode", "card-pct", "card-flat"].forEach(function (id) { $(id).addEventListener("input", renderResults); });
+
+  render();
+})();
+</script>
+
+</body></html>
